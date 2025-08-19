@@ -100,7 +100,7 @@ func TestExamplesFromSpec(t *testing.T) {
 
 			require.Equal(t, tc.want, quint)
 
-			quint = proquint.FromInt32(int32(tc.in[0])<<24 + int32(tc.in[1])<<16 + int32(tc.in[2])<<8 + int32(tc.in[3]))
+			quint = proquint.FromInt32(int32(tc.in[0])<<24+int32(tc.in[1])<<16+int32(tc.in[2])<<8+int32(tc.in[3]), proquint.WithHyphens())
 			require.NoError(t, err)
 
 			require.Equal(t, tc.want, quint)
@@ -195,10 +195,14 @@ func TestIntx(t *testing.T) {
 
 	require.Equal(t, "bagav", proquint.FromUint16(uint16(in)))
 	require.Equal(t, "bagav", proquint.FromInt16(int16(in)))
-	require.Equal(t, "babab-bagav", proquint.FromUint32(uint32(in)))
-	require.Equal(t, "babab-bagav", proquint.FromInt32(int32(in)))
-	require.Equal(t, "babab-babab-babab-bagav", proquint.FromUint64(uint64(in)))
-	require.Equal(t, "babab-babab-babab-bagav", proquint.FromInt64(int64(in)))
+	require.Equal(t, "bababbagav", proquint.FromUint32(uint32(in)))
+	require.Equal(t, "bababbagav", proquint.FromInt32(int32(in)))
+	require.Equal(t, "babab-bagav", proquint.FromUint32(uint32(in), proquint.WithHyphens()))
+	require.Equal(t, "babab-bagav", proquint.FromInt32(int32(in), proquint.WithHyphens()))
+	require.Equal(t, "bababbababbababbagav", proquint.FromUint64(uint64(in)))
+	require.Equal(t, "bababbababbababbagav", proquint.FromInt64(int64(in)))
+	require.Equal(t, "babab-babab-babab-bagav", proquint.FromUint64(uint64(in), proquint.WithHyphens()))
+	require.Equal(t, "babab-babab-babab-bagav", proquint.FromInt64(int64(in), proquint.WithHyphens()))
 }
 
 func TestHexToProquint(t *testing.T) {

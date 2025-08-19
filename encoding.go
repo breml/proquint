@@ -35,23 +35,45 @@ func FromInt16(in int16) string {
 }
 
 // FromUint32 encodes proquint from the provided uint32 argument.
-func FromUint32(in uint32) string {
-	return FromUint16(uint16(in>>16)) + "-" + FromUint16(uint16(in))
+func FromUint32(in uint32, opts ...EncodingOption) string {
+	cfg := encodingConfig{}
+
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	hyphens := ""
+	if cfg.hyphens {
+		hyphens = "-"
+	}
+
+	return FromUint16(uint16(in>>16)) + hyphens + FromUint16(uint16(in))
 }
 
 // FromInt32 encodes proquint from the provided int32 argument.
-func FromInt32(in int32) string {
-	return FromUint16(uint16(in>>16)) + "-" + FromUint16(uint16(in))
+func FromInt32(in int32, opts ...EncodingOption) string {
+	return FromUint32(uint32(in), opts...)
 }
 
 // FromUint64 encodes proquint from the provided uint64 argument.
-func FromUint64(in uint64) string {
-	return FromUint16(uint16(in>>48)) + "-" + FromUint16(uint16(in>>32)) + "-" + FromUint16(uint16(in>>16)) + "-" + FromUint16(uint16(in))
+func FromUint64(in uint64, opts ...EncodingOption) string {
+	cfg := encodingConfig{}
+
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	hyphens := ""
+	if cfg.hyphens {
+		hyphens = "-"
+	}
+
+	return FromUint16(uint16(in>>48)) + hyphens + FromUint16(uint16(in>>32)) + hyphens + FromUint16(uint16(in>>16)) + hyphens + FromUint16(uint16(in))
 }
 
 // FromInt64 encodes proquint from the provided int64 argument.
-func FromInt64(in int64) string {
-	return FromInt16(int16(in>>48)) + "-" + FromInt16(int16(in>>32)) + "-" + FromInt16(int16(in>>16)) + "-" + FromInt16(int16(in))
+func FromInt64(in int64, opts ...EncodingOption) string {
+	return FromUint64(uint64(in), opts...)
 }
 
 type encodingConfig struct {
