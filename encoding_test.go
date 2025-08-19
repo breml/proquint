@@ -190,6 +190,139 @@ func TestFromBytes(t *testing.T) {
 	}
 }
 
+func TestVectorsFromDraftRayner16bit(t *testing.T) {
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	tests := []struct {
+		name string
+		in   uint16
+
+		want string
+	}{
+		{
+			name: "0x0000",
+			in:   0x0000,
+
+			want: "babab",
+		},
+		{
+			name: "0xFFFF",
+			in:   0xFFFF,
+
+			want: "zuzuz", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "zvzuz", which is wrong, since the second character needs to be a vowel.
+		},
+		{
+			name: "0x1234",
+			in:   0x1234,
+
+			want: "damuh",
+		},
+		{
+			name: "0xF00D",
+			in:   0xF00D,
+
+			want: "zabat",
+		},
+		{
+			name: "0xBEEF",
+			in:   0xBEEF,
+
+			want: "ruroz",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			quint := proquint.FromUint16(tc.in)
+			require.Equal(t, tc.want, quint)
+		})
+	}
+}
+
+func TestVectorsFromDraftRayner32bit(t *testing.T) {
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	tests := []struct {
+		name string
+		in   uint32
+
+		want            string
+		wantWithHyphens string
+	}{
+		{
+			name: "0x12 0x34 0xF0 0x0D",
+			in:   0x1234F00D,
+
+			want:            "damuhzabat",
+			wantWithHyphens: "damuh-zabat",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			quint := proquint.FromUint32(tc.in)
+			require.Equal(t, tc.want, quint)
+
+			quintWithHyphens := proquint.FromUint32(tc.in, proquint.WithHyphens())
+			require.Equal(t, tc.wantWithHyphens, quintWithHyphens)
+		})
+	}
+}
+
+func TestVectorsFromDraftRaynerBytes(t *testing.T) {
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+
+	in := []byte(`F3r41OutL4w`)
+
+	tests := []struct {
+		name string
+		opts []proquint.EncodingOption
+
+		assertErr require.ErrorAssertionFunc
+		want      string
+	}{
+		{
+			name: "plain",
+
+			assertErr: require.Error,
+		},
+		{
+			name: "with padding",
+			opts: []proquint.EncodingOption{
+				proquint.WithPadding(),
+			},
+
+			assertErr: require.NoError,
+			want:      "himuglamuhgajazlijuhhubuhlisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+		},
+		{
+			name: "with padding and hyphens",
+			opts: []proquint.EncodingOption{
+				proquint.WithPadding(),
+				proquint.WithHyphens(),
+			},
+
+			assertErr: require.NoError,
+			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+		},
+		{
+			name: "with padding final hyphen",
+			opts: []proquint.EncodingOption{
+				proquint.WithPaddingFinalHyphen(),
+			},
+
+			assertErr: require.NoError,
+			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab-", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			quint, err := proquint.FromBytes(in, tc.opts...)
+			tc.assertErr(t, err)
+			require.Equal(t, tc.want, quint)
+		})
+	}
+}
+
 func TestIntx(t *testing.T) {
 	var in uint64 = 0xCE
 
