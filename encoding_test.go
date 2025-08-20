@@ -191,7 +191,7 @@ func TestFromBytes(t *testing.T) {
 }
 
 func TestVectorsFromDraftRayner16bit(t *testing.T) {
-	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/04/
 	tests := []struct {
 		name string
 		in   uint16
@@ -208,7 +208,7 @@ func TestVectorsFromDraftRayner16bit(t *testing.T) {
 			name: "0xFFFF",
 			in:   0xFFFF,
 
-			want: "zuzuz", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "zvzuz", which is wrong, since the second character needs to be a vowel.
+			want: "zuzuz",
 		},
 		{
 			name: "0x1234",
@@ -239,7 +239,7 @@ func TestVectorsFromDraftRayner16bit(t *testing.T) {
 }
 
 func TestVectorsFromDraftRayner32bit(t *testing.T) {
-	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/04/
 	tests := []struct {
 		name string
 		in   uint32
@@ -268,7 +268,7 @@ func TestVectorsFromDraftRayner32bit(t *testing.T) {
 }
 
 func TestVectorsFromDraftRaynerBytes(t *testing.T) {
-	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/04/
 
 	in := []byte(`F3r41OutL4w`)
 
@@ -291,7 +291,7 @@ func TestVectorsFromDraftRaynerBytes(t *testing.T) {
 			},
 
 			assertErr: require.NoError,
-			want:      "himuglamuhgajazlijuhhubuhlisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			want:      "himuglamuhgajazlijuhhubuhlisab",
 		},
 		{
 			name: "with padding and hyphens",
@@ -301,7 +301,7 @@ func TestVectorsFromDraftRaynerBytes(t *testing.T) {
 			},
 
 			assertErr: require.NoError,
-			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab",
 		},
 		{
 			name: "with padding final hyphen",
@@ -310,7 +310,7 @@ func TestVectorsFromDraftRaynerBytes(t *testing.T) {
 			},
 
 			assertErr: require.NoError,
-			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab-", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab-",
 		},
 	}
 

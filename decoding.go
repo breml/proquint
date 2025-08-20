@@ -40,6 +40,10 @@ func ToBytes(in string, opts ...DecodingOption) ([]byte, error) {
 	hasFinalHyphen := strings.HasSuffix(in, "-")
 	in = strings.ToLower(strings.ReplaceAll(in, "-", ""))
 
+	if len(in) == 0 {
+		return nil, fmt.Errorf("invalid proquint, length is 0")
+	}
+
 	if len(in)%5 != 0 {
 		return nil, fmt.Errorf("invalid proquint, length not multiple of 5")
 	}
@@ -57,8 +61,14 @@ func ToBytes(in string, opts ...DecodingOption) ([]byte, error) {
 	}
 
 	finalByte := res[len(res)-1]
-	isFinalHyphenPadding := cfg.finalHyphenPadding && hasFinalHyphen && finalByte == 0
-	isZeroBytePadding := cfg.finalZeroBytePadding && finalByte == 0
+
+	isFinalHyphenPaddingInvalidFinalByte := cfg.finalHyphenPadding && hasFinalHyphen && finalByte != 0x00
+	if isFinalHyphenPaddingInvalidFinalByte {
+		return nil, fmt.Errorf("invalid proquint, final hyphen present, but last byte is not 0x00")
+	}
+
+	isFinalHyphenPadding := cfg.finalHyphenPadding && hasFinalHyphen && finalByte == 0x00
+	isZeroBytePadding := cfg.finalZeroBytePadding && finalByte == 0x00
 	if isFinalHyphenPadding || isZeroBytePadding {
 		// Strip final byte, since it is 0x00 and padding is enabled.
 		res = res[:len(res)-1]
