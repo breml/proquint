@@ -1,6 +1,7 @@
 package proquint_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -517,4 +518,42 @@ func TestToInt64(t *testing.T) {
 			require.Equal(t, tc.want, got)
 		})
 	}
+}
+
+var proquintRegex = regexp.MustCompile(`(?i)^(([bdfghjklmnprstvz][aiou][bdfghjklmnprstvz][aiou][bdfghjklmnprstvz])*|([bdfghjklmnprstvz][aiou][bdfghjklmnprstvz][aiou][bdfghjklmnprstvz]-)+)(([bdfghjklmnprstvz][aiou][bdfghjklmnprstvz][aiou][bdfghjklmnprstvz])|([bdfghjklmnprstvz][aiou][bhms]ab-))$`)
+
+var corpus = []string{
+	`babab`,
+	`zuzuz`,
+	`damuh`,
+	`zabat`,
+	`ruroz`,
+	`damuh-zabat`,
+	`himug-lamuh-gajaz-lijuh-hubuh-lisab`,
+	`himug-lamuh-gajaz-lijuh-hubuh-lisab`,
+	`himug-lamuh-gajaz-lijuh-hubuh-lisab`,
+	`himug-lamuh-gajaz-lijuh-hubuh-lisab-`,
+	`kivafdamur`,
+	`kivafdamur`,
+	`kivaf-damur`,
+	`KIVAFDAMUR`,
+	`KIVAF-DAMUR`,
+	`bahaf-basab`,
+	`bahaf-basab`,
+	`bahaf-basab-`,
+}
+
+func FuzzToBytes(f *testing.F) {
+	for _, quint := range corpus {
+		f.Add(quint)
+	}
+
+	f.Fuzz(func(t *testing.T, in string) {
+		regRes := proquintRegex.MatchString(in)
+		got, err := proquint.ToBytes(in)
+
+		if (err == nil) != regRes {
+			t.Errorf("proquint %q produced %v with FromBytes and %t with regex match: %t != %t, got: %q", string(in), err, regRes, err == nil, regRes, got)
+		}
+	})
 }
