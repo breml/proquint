@@ -26,7 +26,7 @@ func TestToBytes(t *testing.T) {
 		},
 		{
 			name: "regular - with dash",
-			in:   "kivafdamur",
+			in:   "kivaf-damur",
 
 			assertErr: require.NoError,
 			want:      []byte{0x67, 0x82, 0x12, 0x3b},
@@ -46,6 +46,41 @@ func TestToBytes(t *testing.T) {
 			want:      []byte{0x67, 0x82, 0x12, 0x3b},
 		},
 		{
+			name: "some hyphens 1",
+			in:   "kivaf-damurzabalhilup",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "some hyphens 2",
+			in:   "kivafdamur-zabalhilup",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "some hyphens 3",
+			in:   "kivaf-damur-zabalhilup",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "misplaced hyphen",
+			in:   "kiva-fdamur-zabal-hilup",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "extreme hyphens",
+			in:   "k-i-v-a-f-d-a-m-u-r-z-a-b-a-l-h-i-l-u-p",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
 			name: "error - empty input",
 			in:   "",
 
@@ -62,6 +97,20 @@ func TestToBytes(t *testing.T) {
 		{
 			name: "error - invalid length",
 			in:   "bahaf-basa",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "error - double hyphen",
+			in:   "bahaf--basab",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "error - leading hyphen",
+			in:   "-bahaf-basab",
 
 			assertErr: require.Error,
 			want:      nil,
@@ -306,6 +355,41 @@ func TestToInt32(t *testing.T) {
 			want:      0,
 		},
 		{
+			name: "error - double hyphen",
+			in:   "kivaf--damur",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - leading hyphen",
+			in:   "-kivaf-damur",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "misplaced hyphen",
+			in:   "kivafd-amur",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "misplaced hyphen 2",
+			in:   "kiva-fdamur",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "extreme hyphens",
+			in:   "k-i-v-a-f-d-a-m-u-r",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
 			name: "error - zero length",
 			in:   "",
 
@@ -356,6 +440,55 @@ func TestToInt64(t *testing.T) {
 		{
 			name: "error - invalid character",
 			in:   "kivaf-damur-zabal-hiXup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - double hyphen",
+			in:   "kivaf-damur-zabal--hilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - leading hyphen",
+			in:   "-kivaf-damur-zabal-hilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "some hyphens 1",
+			in:   "kivaf-damurzabalhilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "some hyphens 2",
+			in:   "kivafdamur-zabalhilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "some hyphens 3",
+			in:   "kivaf-damur-zabalhilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "missplaced hyphen",
+			in:   "kiva-fdamur-zabal-hilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "extreme hyphens",
+			in:   "k-i-v-a-f-d-a-m-u-r-z-a-b-a-l-h-i-l-u-p",
 
 			assertErr: require.Error,
 			want:      0,
