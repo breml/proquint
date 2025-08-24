@@ -149,7 +149,7 @@ func TestVectorsFromDraftRaynerToBytes(t *testing.T) {
 			name: "himug-lamuh-gajaz-lijuh-hubuh-lisab with zero byte padding",
 			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab",
 			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalZeroBytePadding(),
+				proquint.LegacyWithFinalZeroBytePadding(),
 			},
 
 			assertErr: require.NoError,
@@ -158,9 +158,6 @@ func TestVectorsFromDraftRaynerToBytes(t *testing.T) {
 		{
 			name: "himug-lamuh-gajaz-lijuh-hubuh-lisab with final hyphen padding",
 			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab",
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
-			},
 
 			assertErr: require.NoError,
 			want:      []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77, 0x00},
@@ -168,9 +165,6 @@ func TestVectorsFromDraftRaynerToBytes(t *testing.T) {
 		{
 			name: "himug-lamuh-gajaz-lijuh-hubuh-lisab- with final hyphen padding",
 			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab-",
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
-			},
 
 			assertErr: require.NoError,
 			want:      []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77},
@@ -178,41 +172,32 @@ func TestVectorsFromDraftRaynerToBytes(t *testing.T) {
 
 		// Padding examples.
 		{
-			name: "with zero padding",
+			name: "with final zero byte without padding hyphen",
 			in:   "bahaf-basab",
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalZeroBytePadding(),
-			},
-
-			assertErr: require.NoError,
-			want:      []byte{0x1, 0x2, 0x3},
-		},
-		{
-			name: "with final hyphen padding without final hyphen",
-			in:   "bahaf-basab",
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
-			},
 
 			assertErr: require.NoError,
 			want:      []byte{0x1, 0x2, 0x3, 0x0},
 		},
 		{
-			name: "with final hyphen padding with final hyphen",
+			name: "with final zero byte with padding hyphen",
 			in:   "bahaf-basab-",
+
+			assertErr: require.NoError,
+			want:      []byte{0x1, 0x2, 0x3},
+		},
+		{
+			name: "legacy with final zero padding",
+			in:   "bahaf-basab",
 			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
+				proquint.LegacyWithFinalZeroBytePadding(),
 			},
 
 			assertErr: require.NoError,
 			want:      []byte{0x1, 0x2, 0x3},
 		},
 		{
-			name: "with final hyphen padding with final hyphen but final byte not 0x00",
+			name: "error - with padding hyphen but non zero final byte",
 			in:   "bahaf-basad-",
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
-			},
 
 			assertErr: require.Error,
 			want:      nil,

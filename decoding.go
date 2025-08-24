@@ -6,26 +6,21 @@ import (
 )
 
 type decodingConfig struct {
-	finalZeroBytePadding bool
-	finalHyphenPadding   bool
+	legacyFinalZeroBytePadding bool
 }
 
 type DecodingOption func(*decodingConfig)
 
-// WithFinalZeroBytePadding treats a final 0x00 byte as padding
+// LegacyWithFinalZeroBytePadding treats a final 0x00 byte as padding
 // and therefore removes it from the returned value.
-func WithFinalZeroBytePadding() DecodingOption {
+//
+// Using a padding byte without the final hyphen as padding indicator is not
+// following draft-rayner-proquint and is therefore considered deprecated.
+// This option allows for compatibility with the original specification by
+// Daniel S. Wilkerson.
+func LegacyWithFinalZeroBytePadding() DecodingOption {
 	return func(cfg *decodingConfig) {
-		cfg.finalZeroBytePadding = true
-	}
-}
-
-// WithFinalHyphenPadding treats a final hyphen as indicator, that
-// a final 0x00 byte is a padding byte and therefore removes it from
-// the returned value.
-func WithFinalHyphenPadding() DecodingOption {
-	return func(cfg *decodingConfig) {
-		cfg.finalHyphenPadding = true
+		cfg.legacyFinalZeroBytePadding = true
 	}
 }
 
@@ -62,13 +57,13 @@ func ToBytes(in string, opts ...DecodingOption) ([]byte, error) {
 
 	finalByte := res[len(res)-1]
 
-	isFinalHyphenPaddingInvalidFinalByte := cfg.finalHyphenPadding && hasFinalHyphen && finalByte != 0x00
+	isFinalHyphenPaddingInvalidFinalByte := !cfg.legacyFinalZeroBytePadding && hasFinalHyphen && finalByte != 0x00
 	if isFinalHyphenPaddingInvalidFinalByte {
 		return nil, fmt.Errorf("invalid proquint, final hyphen present, but last byte is not 0x00")
 	}
 
-	isFinalHyphenPadding := cfg.finalHyphenPadding && hasFinalHyphen && finalByte == 0x00
-	isZeroBytePadding := cfg.finalZeroBytePadding && finalByte == 0x00
+	isFinalHyphenPadding := !cfg.legacyFinalZeroBytePadding && hasFinalHyphen && finalByte == 0x00
+	isZeroBytePadding := cfg.legacyFinalZeroBytePadding && finalByte == 0x00
 	if isFinalHyphenPadding || isZeroBytePadding {
 		// Strip final byte, since it is 0x00 and padding is enabled.
 		res = res[:len(res)-1]
