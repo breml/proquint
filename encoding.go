@@ -77,9 +77,9 @@ func FromInt64(in int64, opts ...EncodingOption) string {
 }
 
 type encodingConfig struct {
-	hyphens            bool
-	padding            bool
-	paddingFinalHyphen bool
+	hyphens        bool
+	disablePadding bool
+	legacyPadding  bool
 }
 
 type EncodingOption func(*encodingConfig)
@@ -93,25 +93,29 @@ func WithHyphens() EncodingOption {
 	}
 }
 
-// WithPadding allows to encode odd number of bytes by adding a single
-// 0x00 byte (padding byte) to the end of the input before encoding.
-func WithPadding() EncodingOption {
+// LegacyWithoutPadding allows to disable padding of odd number of bytes.
+// Without padding, trying to encode odd number of bytes returns an error.
+//
+// Disabling of padding is not following draft-rayner-proquint and is
+// therefore considered deprecated. This option allows for compatibility
+// with the original specification by Daniel S. Wilkerson.
+func LegacyWithoutPadding() EncodingOption {
 	return func(cfg *encodingConfig) {
-		cfg.padding = true
+		cfg.disablePadding = true
+		cfg.legacyPadding = true
 	}
 }
 
-// WithPaddingFinalHyphen allows to encode odd number of bytes by adding a single
-// 0x00 byte (padding byte) to the end of the input before encoding. If the
-// final byte is a padding byte is signaled by ending the encoded proquint with
-// a final hyphen:
+// LegacyWithZeroPadding allows encoding of odd number of bytes by adding a
+// zero (0x00) padding byte to the input.
 //
-//	lusab-
-func WithPaddingFinalHyphen() EncodingOption {
+// Using a padding byte without the final hyphen as padding indicator is not
+// following draft-rayner-proquint and is therefore considered deprecated.
+// This option allows for compatibility with the original specification by
+// Daniel S. Wilkerson.
+func LegacyWithZeroPadding() EncodingOption {
 	return func(cfg *encodingConfig) {
-		cfg.hyphens = true
-		cfg.padding = true
-		cfg.paddingFinalHyphen = true
+		cfg.legacyPadding = true
 	}
 }
 
@@ -123,7 +127,7 @@ func FromBytes(in []byte, opts ...EncodingOption) (string, error) {
 	}
 
 	padded := false
-	if cfg.padding && len(in)%2 == 1 {
+	if !cfg.disablePadding && len(in)%2 == 1 {
 		// Odd number of bytes in input, compensate with 0x00 padding byte.
 		in = append(in, 0x00)
 		padded = true
@@ -143,7 +147,7 @@ func FromBytes(in []byte, opts ...EncodingOption) (string, error) {
 		str.WriteString(FromUint16(uint16(in[i])<<8 + uint16(in[i+1])))
 	}
 
-	if cfg.paddingFinalHyphen && padded {
+	if !cfg.legacyPadding && padded {
 		str.WriteByte('-')
 	}
 
