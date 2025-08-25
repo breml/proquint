@@ -141,10 +141,9 @@ func TestFromBytes(t *testing.T) {
 			want:      "lusab-babad",
 		},
 		{
-			name: "zero padding",
-			in:   []byte{1, 2, 3},
+			name: "standard with hyphen, no padding needed, regular final zero byte",
+			in:   []byte{1, 2, 3, 0},
 			encodingOptions: []proquint.EncodingOption{
-				proquint.WithPadding(),
 				proquint.WithHyphens(),
 			},
 
@@ -152,28 +151,32 @@ func TestFromBytes(t *testing.T) {
 			want:      "bahaf-basab",
 		},
 		{
-			name: "hyphen padding regular final zero byte",
-			in:   []byte{1, 2, 3, 0},
-			encodingOptions: []proquint.EncodingOption{
-				proquint.WithPaddingFinalHyphen(),
-			},
-
-			assertErr: require.NoError,
-			want:      "bahaf-basab",
-		},
-		{
-			name: "hyphen padding odd number of bytes",
+			name: "standard with hyphen, padding odd number of bytes",
 			in:   []byte{1, 2, 3},
 			encodingOptions: []proquint.EncodingOption{
-				proquint.WithPaddingFinalHyphen(),
+				proquint.WithHyphens(),
 			},
 
 			assertErr: require.NoError,
 			want:      "bahaf-basab-",
 		},
 		{
-			name: "error - odd number of bytes without padding",
+			name: "legacy zero padding",
 			in:   []byte{1, 2, 3},
+			encodingOptions: []proquint.EncodingOption{
+				proquint.LegacyWithZeroPadding(),
+				proquint.WithHyphens(),
+			},
+
+			assertErr: require.NoError,
+			want:      "bahaf-basab",
+		},
+		{
+			name: "error - odd number of bytes without padding (legacy)",
+			in:   []byte{1, 2, 3},
+			encodingOptions: []proquint.EncodingOption{
+				proquint.LegacyWithoutPadding(),
+			},
 
 			assertErr: require.Error,
 			want:      "",
@@ -191,7 +194,7 @@ func TestFromBytes(t *testing.T) {
 }
 
 func TestVectorsFromDraftRayner16bit(t *testing.T) {
-	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/04/
 	tests := []struct {
 		name string
 		in   uint16
@@ -208,7 +211,7 @@ func TestVectorsFromDraftRayner16bit(t *testing.T) {
 			name: "0xFFFF",
 			in:   0xFFFF,
 
-			want: "zuzuz", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "zvzuz", which is wrong, since the second character needs to be a vowel.
+			want: "zuzuz",
 		},
 		{
 			name: "0x1234",
@@ -239,7 +242,7 @@ func TestVectorsFromDraftRayner16bit(t *testing.T) {
 }
 
 func TestVectorsFromDraftRayner32bit(t *testing.T) {
-	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/04/
 	tests := []struct {
 		name string
 		in   uint32
@@ -268,7 +271,7 @@ func TestVectorsFromDraftRayner32bit(t *testing.T) {
 }
 
 func TestVectorsFromDraftRaynerBytes(t *testing.T) {
-	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/04/
 
 	in := []byte(`F3r41OutL4w`)
 
@@ -280,37 +283,47 @@ func TestVectorsFromDraftRaynerBytes(t *testing.T) {
 		want      string
 	}{
 		{
-			name: "plain",
-
-			assertErr: require.Error,
-		},
-		{
-			name: "with padding",
-			opts: []proquint.EncodingOption{
-				proquint.WithPadding(),
-			},
+			name: "standard",
+			opts: []proquint.EncodingOption{},
 
 			assertErr: require.NoError,
-			want:      "himuglamuhgajazlijuhhubuhlisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			want:      "himuglamuhgajazlijuhhubuhlisab-",
 		},
 		{
-			name: "with padding and hyphens",
+			name: "with hyphen",
 			opts: []proquint.EncodingOption{
-				proquint.WithPadding(),
 				proquint.WithHyphens(),
 			},
 
 			assertErr: require.NoError,
-			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab-",
 		},
 		{
-			name: "with padding final hyphen",
+			name: "legacy without padding",
 			opts: []proquint.EncodingOption{
-				proquint.WithPaddingFinalHyphen(),
+				proquint.LegacyWithoutPadding(),
+			},
+
+			assertErr: require.Error,
+		},
+		{
+			name: "legacy with zero padding",
+			opts: []proquint.EncodingOption{
+				proquint.LegacyWithZeroPadding(),
 			},
 
 			assertErr: require.NoError,
-			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab-", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			want:      "himuglamuhgajazlijuhhubuhlisab",
+		},
+		{
+			name: "legacy with zero padding and hyphens",
+			opts: []proquint.EncodingOption{
+				proquint.LegacyWithZeroPadding(),
+				proquint.WithHyphens(),
+			},
+
+			assertErr: require.NoError,
+			want:      "himug-lamuh-gajaz-lijuh-hubuh-lisab",
 		},
 	}
 
