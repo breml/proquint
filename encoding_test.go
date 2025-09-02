@@ -181,6 +181,14 @@ func TestFromBytes(t *testing.T) {
 			assertErr: require.Error,
 			want:      "",
 		},
+		{
+			name:            "error - empty input",
+			in:              []byte{},
+			encodingOptions: []proquint.EncodingOption{},
+
+			assertErr: require.Error,
+			want:      "",
+		},
 	}
 
 	for _, tc := range tests {

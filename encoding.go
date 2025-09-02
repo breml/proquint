@@ -126,6 +126,10 @@ func FromBytes(in []byte, opts ...EncodingOption) (string, error) {
 		opt(&cfg)
 	}
 
+	if len(in) == 0 {
+		return "", fmt.Errorf("empty input not allowed")
+	}
+
 	padded := false
 	if !cfg.disablePadding && len(in)%2 == 1 {
 		// Odd number of bytes in input, compensate with 0x00 padding byte.
