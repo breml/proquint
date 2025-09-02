@@ -6,26 +6,21 @@ import (
 )
 
 type decodingConfig struct {
-	finalZeroBytePadding bool
-	finalHyphenPadding   bool
+	legacyFinalZeroBytePadding bool
 }
 
 type DecodingOption func(*decodingConfig)
 
-// WithFinalZeroBytePadding treats a final 0x00 byte as padding
+// LegacyWithFinalZeroBytePadding treats a final 0x00 byte as padding
 // and therefore removes it from the returned value.
-func WithFinalZeroBytePadding() DecodingOption {
+//
+// Using a padding byte without the final hyphen as padding indicator is not
+// following draft-rayner-proquint and is therefore considered deprecated.
+// This option allows for compatibility with the original specification by
+// Daniel S. Wilkerson.
+func LegacyWithFinalZeroBytePadding() DecodingOption {
 	return func(cfg *decodingConfig) {
-		cfg.finalZeroBytePadding = true
-	}
-}
-
-// WithFinalHyphenPadding treats a final hyphen as indicator, that
-// a final 0x00 byte is a padding byte and therefore removes it from
-// the returned value.
-func WithFinalHyphenPadding() DecodingOption {
-	return func(cfg *decodingConfig) {
-		cfg.finalHyphenPadding = true
+		cfg.legacyFinalZeroBytePadding = true
 	}
 }
 
@@ -37,8 +32,38 @@ func ToBytes(in string, opts ...DecodingOption) ([]byte, error) {
 		opt(&cfg)
 	}
 
+	if !cfg.legacyFinalZeroBytePadding && strings.Contains(in, "--") {
+		return nil, fmt.Errorf("invalid proquint, consecutive hyphens are not allowed")
+	}
+
+	if !cfg.legacyFinalZeroBytePadding && strings.HasPrefix(in, "-") {
+		return nil, fmt.Errorf("invalid proquint, leading hyphen is not allowed")
+	}
+
 	hasFinalHyphen := strings.HasSuffix(in, "-")
-	in = strings.ToLower(strings.ReplaceAll(in, "-", ""))
+	if hasFinalHyphen {
+		in = in[:len(in)-1]
+	}
+
+	if strings.Contains(in, "-") {
+		for i := 0; i < len(in); i++ {
+			if i%6 == 5 && in[i] != '-' {
+				return nil, fmt.Errorf("invalid proquint, proquint with hyphens, but not between all syllables")
+			}
+
+			if i%6 != 5 && in[i] == '-' {
+				return nil, fmt.Errorf("invalid proquint, hyphen in unexpected position detected")
+			}
+		}
+
+		in = strings.ReplaceAll(in, "-", "")
+	}
+
+	in = strings.ToLower(in)
+
+	if len(in) == 0 {
+		return nil, fmt.Errorf("invalid proquint, length is 0")
+	}
 
 	if len(in)%5 != 0 {
 		return nil, fmt.Errorf("invalid proquint, length not multiple of 5")
@@ -57,8 +82,14 @@ func ToBytes(in string, opts ...DecodingOption) ([]byte, error) {
 	}
 
 	finalByte := res[len(res)-1]
-	isFinalHyphenPadding := cfg.finalHyphenPadding && hasFinalHyphen && finalByte == 0
-	isZeroBytePadding := cfg.finalZeroBytePadding && finalByte == 0
+
+	isFinalHyphenPaddingInvalidFinalByte := !cfg.legacyFinalZeroBytePadding && hasFinalHyphen && finalByte != 0x00
+	if isFinalHyphenPaddingInvalidFinalByte {
+		return nil, fmt.Errorf("invalid proquint, final hyphen present, but last byte is not 0x00")
+	}
+
+	isFinalHyphenPadding := !cfg.legacyFinalZeroBytePadding && hasFinalHyphen && finalByte == 0x00
+	isZeroBytePadding := cfg.legacyFinalZeroBytePadding && finalByte == 0x00
 	if isFinalHyphenPadding || isZeroBytePadding {
 		// Strip final byte, since it is 0x00 and padding is enabled.
 		res = res[:len(res)-1]
@@ -114,15 +145,38 @@ func ToInt16(in string) (int16, error) {
 
 // ToUint32 decodes two proquint syllables to uint32.
 func ToUint32(in string) (uint32, error) {
-	quints := strings.Split(in, "-")
-	if len(quints) != 2 {
-		return 0, fmt.Errorf("invalid input, expect 2 quints, got %d", len(quints))
+	if strings.Contains(in, "--") {
+		return 0, fmt.Errorf("invalid propuint, consecutive hyphens are not allowed")
+	}
+
+	if strings.HasPrefix(in, "-") {
+		return 0, fmt.Errorf("invalid proquint, leading hyphen is not allowed")
+	}
+
+	if strings.Contains(in, "-") {
+		for i := 0; i < len(in); i++ {
+			if i%6 == 5 && in[i] != '-' {
+				return 0, fmt.Errorf("invalid proquint, proquint with hyphens, but not between all syllables")
+			}
+
+			if i%6 != 5 && in[i] == '-' {
+				return 0, fmt.Errorf("invalid proquint, hyphen in unexpected position detected")
+			}
+		}
+
+		in = strings.ReplaceAll(in, "-", "")
+	}
+
+	in = strings.ToLower(in)
+
+	if len(in) != 10 {
+		return 0, fmt.Errorf("invalid input, expect 10 characters (without hyphen), got %d", len(in))
 	}
 
 	var res uint32
 
-	for i, quint := range quints {
-		ui16, err := ToUint16(quint)
+	for i := range 2 {
+		ui16, err := ToUint16(in[i*5 : (i+1)*5])
 		if err != nil {
 			return 0, err
 		}
@@ -145,15 +199,38 @@ func ToInt32(in string) (int32, error) {
 
 // ToUint64 decodes four proquint syllables to uint64.
 func ToUint64(in string) (uint64, error) {
-	quints := strings.Split(in, "-")
-	if len(quints) != 4 {
-		return 0, fmt.Errorf("invalid input, expect 4 quints, got %d", len(quints))
+	if strings.Contains(in, "--") {
+		return 0, fmt.Errorf("invalid propuint, consecutive hyphens are not allowed")
+	}
+
+	if strings.HasPrefix(in, "-") {
+		return 0, fmt.Errorf("invalid proquint, leading hyphen is not allowed")
+	}
+
+	if strings.Contains(in, "-") {
+		for i := 0; i < len(in); i++ {
+			if i%6 == 5 && in[i] != '-' {
+				return 0, fmt.Errorf("invalid proquint, proquint with hyphens, but not between all syllables")
+			}
+
+			if i%6 != 5 && in[i] == '-' {
+				return 0, fmt.Errorf("invalid proquint, hyphen in unexpected position detected")
+			}
+		}
+
+		in = strings.ReplaceAll(in, "-", "")
+	}
+
+	in = strings.ToLower(in)
+
+	if len(in) != 20 {
+		return 0, fmt.Errorf("invalid input, expect 20 characters (without hyphen), got %d", len(in))
 	}
 
 	var res uint64
 
-	for i, quint := range quints {
-		ui16, err := ToUint16(quint)
+	for i := range 4 {
+		ui16, err := ToUint16(in[i*5 : (i+1)*5])
 		if err != nil {
 			return 0, err
 		}

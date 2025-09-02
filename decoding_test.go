@@ -1,6 +1,7 @@
 package proquint_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -26,7 +27,7 @@ func TestToBytes(t *testing.T) {
 		},
 		{
 			name: "regular - with dash",
-			in:   "kivafdamur",
+			in:   "kivaf-damur",
 
 			assertErr: require.NoError,
 			want:      []byte{0x67, 0x82, 0x12, 0x3b},
@@ -46,38 +47,71 @@ func TestToBytes(t *testing.T) {
 			want:      []byte{0x67, 0x82, 0x12, 0x3b},
 		},
 		{
-			name: "with zero padding",
-			in:   "bahaf-basab",
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalZeroBytePadding(),
-			},
+			name: "some hyphens 1",
+			in:   "kivaf-damurzabalhilup",
 
-			assertErr: require.NoError,
-			want:      []byte{0x1, 0x2, 0x3},
+			assertErr: require.Error,
+			want:      nil,
 		},
 		{
-			name: "with final hyphen padding without final hyphen",
-			in:   "bahaf-basab",
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
-			},
+			name: "some hyphens 2",
+			in:   "kivafdamur-zabalhilup",
 
-			assertErr: require.NoError,
-			want:      []byte{0x1, 0x2, 0x3, 0x0},
+			assertErr: require.Error,
+			want:      nil,
 		},
 		{
-			name: "with final hyphen padding with final hyphen",
-			in:   "bahaf-basab-",
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
-			},
+			name: "some hyphens 3",
+			in:   "kivaf-damur-zabalhilup",
 
-			assertErr: require.NoError,
-			want:      []byte{0x1, 0x2, 0x3},
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "misplaced hyphen",
+			in:   "kiva-fdamur-zabal-hilup",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "extreme hyphens",
+			in:   "k-i-v-a-f-d-a-m-u-r-z-a-b-a-l-h-i-l-u-p",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "error - empty input",
+			in:   "",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "error - only final hyphen without syllables",
+			in:   "-",
+
+			assertErr: require.Error,
+			want:      nil,
 		},
 		{
 			name: "error - invalid length",
 			in:   "bahaf-basa",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "error - double hyphen",
+			in:   "bahaf--basab",
+
+			assertErr: require.Error,
+			want:      nil,
+		},
+		{
+			name: "error - leading hyphen",
+			in:   "-bahaf-basab",
 
 			assertErr: require.Error,
 			want:      nil,
@@ -102,7 +136,7 @@ func TestToBytes(t *testing.T) {
 }
 
 func TestVectorsFromDraftRaynerToBytes(t *testing.T) {
-	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/03/
+	// Test vectors form Draft Rayner https://datatracker.ietf.org/doc/draft-rayner-proquint/04/
 
 	tests := []struct {
 		name            string
@@ -116,77 +150,114 @@ func TestVectorsFromDraftRaynerToBytes(t *testing.T) {
 			name: "babab",
 			in:   "babab",
 
-			want: []byte{0x00, 0x00},
+			assertErr: require.NoError,
+			want:      []byte{0x00, 0x00},
 		},
 		{
 			name: "zuzuz",
-			in:   "zuzuz", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "zvzuz", which is wrong, since the second character needs to be a vowel.
+			in:   "zuzuz",
 
-			want: []byte{0xFF, 0xFF},
+			assertErr: require.NoError,
+			want:      []byte{0xFF, 0xFF},
 		},
 		{
 			name: "damuh",
 			in:   "damuh",
 
-			want: []byte{0x12, 0x34},
+			assertErr: require.NoError,
+			want:      []byte{0x12, 0x34},
 		},
 		{
 			name: "zabat",
 			in:   "zabat",
 
-			want: []byte{0xF0, 0x0D},
+			assertErr: require.NoError,
+			want:      []byte{0xF0, 0x0D},
 		},
 		{
 			name: "ruroz",
 			in:   "ruroz",
 
-			want: []byte{0xBE, 0xEF},
+			assertErr: require.NoError,
+			want:      []byte{0xBE, 0xEF},
 		},
 		{
 			name: "damuh-zabat",
 			in:   "damuh-zabat",
 
-			want: []byte{0x12, 0x34, 0xF0, 0x0D},
+			assertErr: require.NoError,
+			want:      []byte{0x12, 0x34, 0xF0, 0x0D},
 		},
 		{
 			name: "himug-lamuh-gajaz-lijuh-hubuh-lisab",
-			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab",
 
-			want: []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77, 0x00},
+			assertErr: require.NoError,
+			want:      []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77, 0x00},
 		},
 		{
 			name: "himug-lamuh-gajaz-lijuh-hubuh-lisab with zero byte padding",
-			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab",
 			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalZeroBytePadding(),
+				proquint.LegacyWithFinalZeroBytePadding(),
 			},
 
-			want: []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77},
+			assertErr: require.NoError,
+			want:      []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77},
 		},
 		{
 			name: "himug-lamuh-gajaz-lijuh-hubuh-lisab with final hyphen padding",
-			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
-			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
-			},
+			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab",
 
-			want: []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77, 0x00},
+			assertErr: require.NoError,
+			want:      []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77, 0x00},
 		},
 		{
 			name: "himug-lamuh-gajaz-lijuh-hubuh-lisab- with final hyphen padding",
-			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab-", // https://datatracker.ietf.org/doc/draft-rayner-proquint/03/ does specify "himug-lamud-kudaz-lijuh-hubuh-lisab" (with hyphens), which is wrong.
+			in:   "himug-lamuh-gajaz-lijuh-hubuh-lisab-",
+
+			assertErr: require.NoError,
+			want:      []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77},
+		},
+
+		// Padding examples.
+		{
+			name: "with final zero byte without padding hyphen",
+			in:   "bahaf-basab",
+
+			assertErr: require.NoError,
+			want:      []byte{0x1, 0x2, 0x3, 0x0},
+		},
+		{
+			name: "with final zero byte with padding hyphen",
+			in:   "bahaf-basab-",
+
+			assertErr: require.NoError,
+			want:      []byte{0x1, 0x2, 0x3},
+		},
+		{
+			name: "legacy with final zero padding",
+			in:   "bahaf-basab",
 			decodingOptions: []proquint.DecodingOption{
-				proquint.WithFinalHyphenPadding(),
+				proquint.LegacyWithFinalZeroBytePadding(),
 			},
 
-			want: []byte{0x46, 0x33, 0x72, 0x34, 0x31, 0x4F, 0x75, 0x74, 0x4C, 0x34, 0x77},
+			assertErr: require.NoError,
+			want:      []byte{0x1, 0x2, 0x3},
+		},
+		{
+			name: "error - with padding hyphen but non zero final byte",
+			in:   "bahaf-basad-",
+
+			assertErr: require.Error,
+			want:      nil,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := proquint.ToBytes(tc.in, tc.decodingOptions...)
-			require.NoError(t, err)
+			tc.assertErr(t, err)
 
 			require.Equal(t, tc.want, got)
 		})
@@ -209,6 +280,13 @@ func TestToInt16(t *testing.T) {
 			want:      26498,
 		},
 		{
+			name: "error - to big for int16",
+			in:   "kivaf-kivaf",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
 			name: "error - invalid length",
 			in:   "kiva",
 
@@ -218,6 +296,20 @@ func TestToInt16(t *testing.T) {
 		{
 			name: "error - invalid character",
 			in:   "kiXaf",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - zero length",
+			in:   "",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - only final hyphen for padding",
+			in:   "-",
 
 			assertErr: require.Error,
 			want:      0,
@@ -263,6 +355,55 @@ func TestToInt32(t *testing.T) {
 			assertErr: require.Error,
 			want:      0,
 		},
+		{
+			name: "error - double hyphen",
+			in:   "kivaf--damur",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - leading hyphen",
+			in:   "-kivaf-damur",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "misplaced hyphen",
+			in:   "kivafd-amur",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "misplaced hyphen 2",
+			in:   "kiva-fdamur",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "extreme hyphens",
+			in:   "k-i-v-a-f-d-a-m-u-r",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - zero length",
+			in:   "",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - only final hyphen for padding",
+			in:   "-",
+
+			assertErr: require.Error,
+			want:      0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -304,6 +445,69 @@ func TestToInt64(t *testing.T) {
 			assertErr: require.Error,
 			want:      0,
 		},
+		{
+			name: "error - double hyphen",
+			in:   "kivaf-damur-zabal--hilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - leading hyphen",
+			in:   "-kivaf-damur-zabal-hilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "some hyphens 1",
+			in:   "kivaf-damurzabalhilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "some hyphens 2",
+			in:   "kivafdamur-zabalhilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "some hyphens 3",
+			in:   "kivaf-damur-zabalhilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "missplaced hyphen",
+			in:   "kiva-fdamur-zabal-hilup",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "extreme hyphens",
+			in:   "k-i-v-a-f-d-a-m-u-r-z-a-b-a-l-h-i-l-u-p",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - zero length",
+			in:   "",
+
+			assertErr: require.Error,
+			want:      0,
+		},
+		{
+			name: "error - only final hyphen for padding",
+			in:   "-",
+
+			assertErr: require.Error,
+			want:      0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -314,4 +518,42 @@ func TestToInt64(t *testing.T) {
 			require.Equal(t, tc.want, got)
 		})
 	}
+}
+
+var proquintRegex = regexp.MustCompile(`(?i)^(([bdfghjklmnprstvz][aiou][bdfghjklmnprstvz][aiou][bdfghjklmnprstvz])*|([bdfghjklmnprstvz][aiou][bdfghjklmnprstvz][aiou][bdfghjklmnprstvz]-)+)(([bdfghjklmnprstvz][aiou][bdfghjklmnprstvz][aiou][bdfghjklmnprstvz])|([bdfghjklmnprstvz][aiou][bhms]ab-))$`)
+
+var corpus = []string{
+	`babab`,
+	`zuzuz`,
+	`damuh`,
+	`zabat`,
+	`ruroz`,
+	`damuh-zabat`,
+	`himug-lamuh-gajaz-lijuh-hubuh-lisab`,
+	`himug-lamuh-gajaz-lijuh-hubuh-lisab`,
+	`himug-lamuh-gajaz-lijuh-hubuh-lisab`,
+	`himug-lamuh-gajaz-lijuh-hubuh-lisab-`,
+	`kivafdamur`,
+	`kivafdamur`,
+	`kivaf-damur`,
+	`KIVAFDAMUR`,
+	`KIVAF-DAMUR`,
+	`bahaf-basab`,
+	`bahaf-basab`,
+	`bahaf-basab-`,
+}
+
+func FuzzToBytes(f *testing.F) {
+	for _, quint := range corpus {
+		f.Add(quint)
+	}
+
+	f.Fuzz(func(t *testing.T, in string) {
+		regRes := proquintRegex.MatchString(in)
+		got, err := proquint.ToBytes(in)
+
+		if (err == nil) != regRes {
+			t.Errorf("proquint %q produced %v with FromBytes and %t with regex match: %t != %t, got: %q", string(in), err, regRes, err == nil, regRes, got)
+		}
+	})
 }
